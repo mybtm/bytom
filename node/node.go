@@ -41,6 +41,8 @@ const (
 	maxNewBlockChSize        = 1024
 )
 
+var logFile *os.File
+
 type Node struct {
 	cmn.BaseService
 
@@ -172,13 +174,22 @@ func initActiveNetParams(config *cfg.Config) {
 	}
 }
 
+type logWriter struct{}
+
+func (logWriter) Write(p []byte) (n int, err error) {
+	os.Stdout.Write(p)
+	logFile.Write(p)
+	return len(p), nil
+}
+
 func initLogFile(config *cfg.Config) {
 	logFilePath := filepath.Join(config.RootDir, "log")
 	cmn.EnsureDir(logFilePath, 0700)
 	logFileName := path.Join(logFilePath, config.LogName)
 	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
-		log.SetOutput(file)
+		logFile = file
+		log.SetOutput(logWriter{})
 	} else {
 		log.Info("Failed to open log file, using default")
 	}
